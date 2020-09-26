@@ -14,11 +14,11 @@
 new_board() -> 
 	list_to_tuple([list_to_tuple([0 || _<- lists:seq(1,?SIZE)]) || _ <- lists:seq(1, ?SIZE)]).
 
-new_game(MAXBOARD, MAXSCORE, ITERATIONS) ->
+new_game(MAXBOARD, MAXSCORE, ITERATIONS, STARTTIME) ->
 	NEWPLAYER = #player{x=rand:uniform(?SIZE), y=rand:uniform(?SIZE)},
 	NEWBOARD = new_board(),
 	#ggame{player=NEWPLAYER, board=NEWBOARD, max_board=MAXBOARD, max_score=MAXSCORE, 
-		   score=0, iterations=ITERATIONS, startTime=erlang:system_time(), endTime=0}.
+		   score=0, iterations=ITERATIONS, startTime=STARTTIME, endTime=0}.
 
 
 board_get(X, Y, BOARD) ->
@@ -141,7 +141,7 @@ print_raport(BOARD, DELTATIME, MAXSCORE) ->
 check_start_time(STARTTIME, ITERATIONS, MAXBOARD, MAXSCORE) ->
 	if
 		ITERATIONS =:= 10000  ->
-			DELTATIME = ((erlang:system_time() - STARTTIME) / 10000),
+			DELTATIME = ((erlang:system_time() - STARTTIME) / 10000) / 1000000000,
 			print_raport(MAXBOARD, DELTATIME, MAXSCORE),
 			{erlang:system_time(), 0};
 		true -> 
@@ -171,20 +171,20 @@ run_game(GAME) ->
 		true ->
 			% restart game
 			{NEWMAXSCORE, NEWMAXBOARD} = check_if_maxscore(GAME#ggame.score, MAXSCORE, BOARD, GAME#ggame.max_board),
-			run_game(new_game(NEWMAXBOARD, NEWMAXSCORE, ITERATIONS + 1));
+			{NEWSTARTTIME, NEWITERATIONS} = check_start_time(GAME#ggame.startTime, ITERATIONS, MAXBOARD, MAXSCORE),
+			run_game(new_game(NEWMAXBOARD, NEWMAXSCORE, NEWITERATIONS + 1, NEWSTARTTIME));
 		false ->
 			% NEWSCORE = GAME#ggame.score + 1,
 			% CHANGEDBOARD = board_set(element(1, NEXT_MOVE), element(2, NEXT_MOVE), NEWSCORE, BOARD),
 			% print_raport(CHANGEDBOARD, 0.0),
 			NEWPLAYER = #player{x=element(1, NEXT_MOVE), y=element(2, NEXT_MOVE)},
-			{NEWSTARTTIME, NEWITERATIONS} = check_start_time(GAME#ggame.startTime, ITERATIONS, MAXBOARD, MAXSCORE),
-			run_game(GAME#ggame{player=NEWPLAYER, board=CHANGEDBOARD, score=NEWSCORE, iterations=NEWITERATIONS, startTime=NEWSTARTTIME})
+			run_game(GAME#ggame{player=NEWPLAYER, board=CHANGEDBOARD, score=NEWSCORE})
 
 	end.
 
 
 run() ->
-	Game = new_game(new_board(), 0, 0),
+	Game = new_game(new_board(), 0, 0, erlang:system_time()),
 	run_game(Game).
 
 
